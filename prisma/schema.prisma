@@ -1,0 +1,249 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Campus {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  location  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  rollNumber         String?
+  department         String?
+  graduationYear     Int?
+  phone              String?
+  avatar             String?
+  bio                String?
+  role               String              @default("STUDENT") // STUDENT, MODERATOR, ADMIN
+  verificationStatus String              @default("PENDING") // PENDING, VERIFIED, REJECTED
+  idCardUrl          String?
+  campusId           String?
+  campus             Campus?             @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  eventsCreated      Event[]             @relation("EventCreator")
+  registrations      EventRegistration[]
+  lostAndFoundItems  LostAndFoundItem[]  @relation("ReportedItems")
+  lostAndFoundClaims LostAndFoundClaim[]
+  communityPosts     CommunityPost[]     @relation("PostAuthor")
+  comments           Comment[]
+  reactions          Reaction[]
+  campaignsCreated   Campaign[]          @relation("CampaignOrganizer")
+  campaignsVerified  Campaign[]          @relation("AdminVerifier")
+  donations          Donation[]
+  reportsSubmitted   ContentReport[]     @relation("Reporter")
+  reportsReviewed    ContentReport[]     @relation("ReportReviewer")
+  notifications      Notification[]
+}
+
+model Event {
+  id                   String              @id @default(cuid())
+  title                String
+  slug                 String              @unique
+  description          String
+  category             String // TECHNICAL, CULTURAL, SPORTS, WORKSHOPS, VOLUNTEERING, OTHER
+  venue                String
+  date                 DateTime
+  startTime            String
+  endTime              String
+  registrationDeadline DateTime
+  capacity             Int
+  coverImage           String?
+  organizerName        String
+  organizerContact     String?
+  status               String              @default("UPCOMING") // UPCOMING, ONGOING, COMPLETED, CANCELLED
+  userId               String
+  creator              User                @relation("EventCreator", fields: [userId], references: [id], onDelete: Cascade)
+  registrations        EventRegistration[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+}
+
+model EventRegistration {
+  id           String   @id @default(cuid())
+  eventId      String
+  userId       String
+  registeredAt DateTime @default(now())
+  status       String   @default("CONFIRMED") // CONFIRMED, CANCELLED
+  notes        String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model LostAndFoundItem {
+  id             String              @id @default(cuid())
+  title          String
+  description    String
+  type           String // LOST, FOUND
+  category       String // ID_CARDS, ELECTRONICS, BOOKS, WALLETS, KEYS, ACCESSORIES, OTHER
+  campusLocation String
+  itemDate       DateTime
+  contactMethod  String // IN_APP, EMAIL, PHONE
+  contactDetails String?
+  imageUrl       String?
+  status         String              @default("OPEN") // OPEN, RESOLVED
+  resolvedAt     DateTime?
+  userId         String
+  reporter       User                @relation("ReportedItems", fields: [userId], references: [id], onDelete: Cascade)
+  claims         LostAndFoundClaim[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model LostAndFoundClaim {
+  id           String           @id @default(cuid())
+  itemId       String
+  claimantId   String
+  message      String
+  proofDetails String?
+  contactInfo  String?
+  status       String           @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt    DateTime         @default(now())
+  item         LostAndFoundItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  claimant     User             @relation(fields: [claimantId], references: [id], onDelete: Cascade)
+}
+
+model CommunityPost {
+  id        String     @id @default(cuid())
+  title     String
+  content   String
+  category  String // TEAMMATES, SPORTS, RIDESHARE, RESOURCES, HELP, ROOMMATES, GENERAL
+  tags      String     @default("")
+  imageUrl  String?
+  isPinned  Boolean    @default(false)
+  status    String     @default("ACTIVE") // ACTIVE, FLAGGED, REMOVED
+  userId    String
+  author    User       @relation("PostAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions Reaction[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Reaction {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  type      String        @default("LIKE") // LIKE, HELPFUL, CELEBRATE
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Campaign {
+  id                String           @id @default(cuid())
+  title             String
+  slug              String           @unique
+  shortSummary      String
+  story             String
+  category          String // ANIMAL_WELFARE, STUDENT_EMERGENCY, CAMPUS_PROJECT, RURAL_OUTREACH, COMMUNITY
+  coverImage        String?
+  targetAmount      Float
+  raisedAmount      Float            @default(0)
+  beneficiaryInfo   String?
+  fundUsagePlan     String
+  supportingDocsUrl String?
+  status            String           @default("PENDING_REVIEW") // PENDING_REVIEW, VERIFIED, REJECTED, ACTIVE, COMPLETED, SUSPENDED
+  verificationNotes String?
+  verifiedByAdminId String?
+  verifiedAt        DateTime?
+  userId            String
+  deadline          DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  organizer  User             @relation("CampaignOrganizer", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy User?            @relation("AdminVerifier", fields: [verifiedByAdminId], references: [id], onDelete: SetNull)
+  donations  Donation[]
+  updates    CampaignUpdate[]
+}
+
+model Donation {
+  id             String   @id @default(cuid())
+  campaignId     String
+  donorId        String?
+  donorName      String
+  donorEmail     String?
+  amount         Float
+  isAnonymous    Boolean  @default(false)
+  message        String?
+  transactionRef String   @unique
+  paymentMethod  String   @default("DEMO_UPI") // DEMO_UPI, DEMO_CARD, DEMO_NETBANKING
+  status         String   @default("SUCCESS") // SUCCESS, FAILED
+  createdAt      DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donor    User?    @relation(fields: [donorId], references: [id], onDelete: SetNull)
+}
+
+model CampaignUpdate {
+  id         String   @id @default(cuid())
+  campaignId String
+  title      String
+  content    String
+  imageUrl   String?
+  postedAt   DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model ContentReport {
+  id              String   @id @default(cuid())
+  reporterId      String
+  targetType      String // POST, COMMENT, LOST_FOUND, CAMPAIGN, EVENT
+  targetId        String
+  reason          String
+  details         String?
+  status          String   @default("PENDING") // PENDING, DISMISSED, ACTION_TAKEN
+  reviewedById    String?
+  resolutionNotes String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reporter   User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  link      String?
+  type      String   @default("INFO") // INFO, EVENT, LOST_FOUND, COMMUNITY, PHILANTHROPY, VERIFICATION
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
