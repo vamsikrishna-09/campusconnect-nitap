@@ -38,6 +38,9 @@ export async function POST(request: Request) {
       role: user.role,
       name: user.name,
       verificationStatus: user.verificationStatus,
+      department: user.department,
+      rollNumber: user.rollNumber || undefined,
+      avatar: user.avatar || undefined,
     });
 
     const response = NextResponse.json({

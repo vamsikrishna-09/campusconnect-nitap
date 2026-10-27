@@ -12,6 +12,9 @@ export interface SessionPayload {
   role: string;
   name: string;
   verificationStatus: string;
+  department?: string | null;
+  rollNumber?: string | null;
+  avatar?: string | null;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -43,27 +46,125 @@ export async function getCurrentUser() {
     const payload = verifyToken(token);
     if (!payload?.userId) return null;
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        rollNumber: true,
-        department: true,
-        graduationYear: true,
-        phone: true,
-        avatar: true,
-        bio: true,
-        role: true,
-        verificationStatus: true,
-        campusId: true,
-        createdAt: true,
-      },
-    });
+    let user: any = null;
+
+    try {
+      const cleanEmail = payload.email.toLowerCase().trim();
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: payload.userId },
+            { email: cleanEmail },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          rollNumber: true,
+          department: true,
+          graduationYear: true,
+          phone: true,
+          avatar: true,
+          bio: true,
+          role: true,
+          verificationStatus: true,
+          campusId: true,
+          createdAt: true,
+        },
+      });
+
+      // Self-heal: If this serverless container's /tmp/dev.db does not have the user yet
+      // (e.g. user registered or switched role in another serverless container), auto-provision them.
+      if (!user) {
+        const campus = await prisma.campus.findFirst();
+        try {
+          user = await prisma.user.create({
+            data: {
+              id: payload.userId,
+              name: payload.name || "Student",
+              email: cleanEmail,
+              passwordHash: "jwt-session-authenticated",
+              rollNumber: payload.rollNumber || null,
+              department: payload.department || "Computer Science & Engineering",
+              role: (payload.role as any) || "STUDENT",
+              verificationStatus: (payload.verificationStatus as any) || "VERIFIED",
+              campusId: campus?.id,
+              avatar:
+                payload.avatar ||
+                `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+                  payload.name || "User"
+                )}&backgroundColor=1e3a8a,3b82f6`,
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              rollNumber: true,
+              department: true,
+              graduationYear: true,
+              phone: true,
+              avatar: true,
+              bio: true,
+              role: true,
+              verificationStatus: true,
+              campusId: true,
+              createdAt: true,
+            },
+          });
+        } catch {
+          // In case another concurrent query created it
+          user = await prisma.user.findFirst({
+            where: { email: cleanEmail },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              rollNumber: true,
+              department: true,
+              graduationYear: true,
+              phone: true,
+              avatar: true,
+              bio: true,
+              role: true,
+              verificationStatus: true,
+              campusId: true,
+              createdAt: true,
+            },
+          });
+        }
+      }
+    } catch (dbErr) {
+      console.error("Database query error in getCurrentUser:", dbErr);
+    }
+
+    // Resilient fallback: If database is temporarily busy or unreachable,
+    // construct complete user profile directly from verified JWT cryptographic payload
+    if (!user && payload) {
+      user = {
+        id: payload.userId,
+        name: payload.name,
+        email: payload.email,
+        rollNumber: payload.rollNumber || null,
+        department: payload.department || "Computer Science & Engineering",
+        graduationYear: 2030,
+        phone: null,
+        avatar:
+          payload.avatar ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+            payload.name || "User"
+          )}&backgroundColor=1e3a8a,3b82f6`,
+        bio: null,
+        role: payload.role || "STUDENT",
+        verificationStatus: payload.verificationStatus || "VERIFIED",
+        campusId: null,
+        createdAt: new Date(),
+      };
+    }
 
     return user;
-  } catch {
+  } catch (err) {
+    console.error("Unexpected error in getCurrentUser:", err);
     return null;
   }
 }

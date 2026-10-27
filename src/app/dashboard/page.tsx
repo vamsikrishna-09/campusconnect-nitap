@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { formatDateTime, formatINR } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function DashboardPage() {

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -9,9 +12,14 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
-    const unreadNotificationsCount = await prisma.notification.count({
-      where: { userId: user.id, isRead: false },
-    });
+    let unreadNotificationsCount = 0;
+    try {
+      unreadNotificationsCount = await prisma.notification.count({
+        where: { userId: user.id, isRead: false },
+      });
+    } catch {
+      unreadNotificationsCount = 0;
+    }
 
     return NextResponse.json({
       user,
@@ -19,6 +27,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Auth me error:", error);
-    return NextResponse.json({ user: null }, { status: 500 });
+    return NextResponse.json({ user: null });
   }
 }

@@ -29,8 +29,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -57,8 +56,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Demo login failed");
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
