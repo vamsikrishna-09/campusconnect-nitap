@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus, Mail, Lock, User, Hash, Building2, Calendar, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
-import { DEPARTMENTS } from "@/lib/constants";
+import { DEPARTMENTS, GRADUATION_YEARS, isCampusEmail } from "@/lib/constants";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -56,7 +56,7 @@ export default function RegisterPage() {
     }
   };
 
-  const isNitEmail = formData.email.toLowerCase().endsWith("@nitandhra.ac.in");
+  const isNitEmail = isCampusEmail(formData.email);
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
@@ -86,7 +86,7 @@ export default function RegisterPage() {
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Campus Verification Workflow
             </div>
             <p className="text-blue-800 text-[11px] leading-relaxed">
-              Official institute addresses ending in <strong>@nitandhra.ac.in</strong> receive instant Verified Student status. Other emails enter Administrator ID review.
+              Official institute addresses ending in <strong>nitandhra.ac.in</strong> (including <strong>@student.nitandhra.ac.in</strong>) receive instant Verified Student status. Other emails enter Administrator ID review.
             </p>
           </div>
 
@@ -140,7 +140,7 @@ export default function RegisterPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="student.cse@nitandhra.ac.in"
+                  placeholder="426065@student.nitandhra.ac.in"
                   required
                   className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -149,7 +149,7 @@ export default function RegisterPage() {
                 <p className="mt-1 text-[11px] font-medium">
                   {isNitEmail ? (
                     <span className="text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Institute domain detected. Instant verification!
+                      <CheckCircle2 className="w-3 h-3" /> Institute domain detected (*.nitandhra.ac.in). Instant verification!
                     </span>
                   ) : (
                     <span className="text-amber-600">
@@ -194,11 +194,11 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                   >
-                    <option value="2025">2025</option>
-                    <option value="2026">2026</option>
-                    <option value="2027">2027</option>
-                    <option value="2028">2028</option>
-                    <option value="2029">2029</option>
+                    {GRADUATION_YEARS.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

@@ -4,8 +4,26 @@ export const CAMPUS_INFO = {
   code: "NIT-AP",
   tagline: "Empowering Campus Life, Connecting Students",
   location: "Tadepalligudem, West Godavari District, Andhra Pradesh - 534101",
-  emailDomain: "@nitandhra.ac.in",
+  emailDomain: "nitandhra.ac.in",
 };
+
+export const GRADUATION_YEARS = [
+  "2024",
+  "2025",
+  "2026",
+  "2027",
+  "2028",
+  "2029",
+  "2030",
+  "2031",
+  "2032",
+] as const;
+
+export function isCampusEmail(email: string): boolean {
+  if (!email) return false;
+  const clean = email.toLowerCase().trim();
+  return clean.endsWith("@nitandhra.ac.in") || clean.endsWith(".nitandhra.ac.in");
+}
 
 export const DEPARTMENTS = [
   "Computer Science & Engineering",

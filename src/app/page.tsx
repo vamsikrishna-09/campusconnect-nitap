@@ -326,7 +326,7 @@ export default async function LandingPage() {
                 href="/auth/register"
                 className="px-5 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 text-white text-xs font-bold transition-all"
               >
-                Join with @nitandhra.ac.in
+                Join with nitandhra.ac.in
               </Link>
               <Link
                 href="/auth/login"

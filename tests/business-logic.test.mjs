@@ -314,3 +314,39 @@ test("8. Administrator Student Verification Workflow", async () => {
   // Clean up
   await prisma.user.delete({ where: { id: testStudent.id } });
 });
+
+test("9. Institute Domain (*.nitandhra.ac.in) Verification & 2030 Graduation Year", async () => {
+  // Test helper domain logic
+  const isCampus = (email) => {
+    if (!email) return false;
+    const clean = email.toLowerCase().trim();
+    return clean.endsWith("@nitandhra.ac.in") || clean.endsWith(".nitandhra.ac.in");
+  };
+
+  assert.equal(isCampus("426065@student.nitandhra.ac.in"), true, "@student.nitandhra.ac.in must be recognized");
+  assert.equal(isCampus("student.cse@nitandhra.ac.in"), true, "@nitandhra.ac.in must be recognized");
+  assert.equal(isCampus("prof.ece@faculty.nitandhra.ac.in"), true, "@faculty.nitandhra.ac.in must be recognized");
+  assert.equal(isCampus("external@gmail.com"), false, "gmail.com must not be verified");
+  assert.equal(isCampus("hacker@fake-nitandhra.ac.in"), false, "spoofed domain must not be verified");
+
+  // Test database user creation with 2030 graduation year
+  const student2030 = await prisma.user.create({
+    data: {
+      name: "Kedam Vamsi Krishna",
+      email: `426065.test.${Date.now()}@student.nitandhra.ac.in`,
+      passwordHash: "securehash",
+      rollNumber: "426065",
+      department: "Computer Science & Engineering",
+      graduationYear: 2030,
+      role: "STUDENT",
+      verificationStatus: isCampus("426065@student.nitandhra.ac.in") ? "VERIFIED" : "PENDING",
+    },
+  });
+
+  assert.equal(student2030.verificationStatus, "VERIFIED", "Student email should be instantly VERIFIED");
+  assert.equal(student2030.graduationYear, 2030, "Graduation year should be 2030");
+
+  // Clean up
+  await prisma.user.delete({ where: { id: student2030.id } });
+});
+

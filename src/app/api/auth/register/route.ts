@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createToken } from "@/lib/auth";
+import { isCampusEmail } from "@/lib/constants";
 
 export async function POST(request: Request) {
   try {
@@ -35,9 +36,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determine verification status: if ending in @nitandhra.ac.in, mark verified, else pending
-    const isCampusEmail = cleanEmail.endsWith("@nitandhra.ac.in");
-    const verificationStatus = isCampusEmail ? "VERIFIED" : "PENDING";
+    // Determine verification status: if ending in nitandhra.ac.in (e.g. @student.nitandhra.ac.in), mark verified, else pending
+    const isVerifiedDomain = isCampusEmail(cleanEmail);
+    const verificationStatus = isVerifiedDomain ? "VERIFIED" : "PENDING";
 
     const passwordHash = await hashPassword(password);
 
