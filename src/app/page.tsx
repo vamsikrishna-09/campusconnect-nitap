@@ -20,37 +20,54 @@ import { formatINR } from "@/lib/utils";
 export const revalidate = 0;
 
 export default async function LandingPage() {
-  const [
-    userCount,
-    eventCount,
-    resolvedCount,
-    donationSum,
-    featuredEvents,
-    featuredCampaigns,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.event.count({ where: { status: "UPCOMING" } }),
-    prisma.lostAndFoundItem.count({ where: { status: "RESOLVED" } }),
-    prisma.donation.aggregate({
-      where: { status: "SUCCESS" },
-      _sum: { amount: true },
-    }),
-    prisma.event.findMany({
-      where: { status: "UPCOMING" },
-      take: 2,
-      orderBy: { date: "asc" },
-      include: {
-        _count: { select: { registrations: true } },
-      },
-    }),
-    prisma.campaign.findMany({
-      where: { status: "VERIFIED" },
-      take: 2,
-      orderBy: { raisedAmount: "desc" },
-    }),
-  ]);
+  let userCount = 5;
+  let eventCount = 4;
+  let resolvedCount = 8;
+  let totalRaised = 32500;
+  let featuredEvents: any[] = [];
+  let featuredCampaigns: any[] = [];
 
-  const totalRaised = donationSum._sum.amount || 32500;
+  try {
+    const [
+      uCount,
+      eCount,
+      rCount,
+      donationSum,
+      fEvents,
+      fCampaigns,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.event.count({ where: { status: "UPCOMING" } }),
+      prisma.lostAndFoundItem.count({ where: { status: "RESOLVED" } }),
+      prisma.donation.aggregate({
+        where: { status: "SUCCESS" },
+        _sum: { amount: true },
+      }),
+      prisma.event.findMany({
+        where: { status: "UPCOMING" },
+        take: 2,
+        orderBy: { date: "asc" },
+        include: {
+          _count: { select: { registrations: true } },
+        },
+      }),
+      prisma.campaign.findMany({
+        where: { status: "VERIFIED" },
+        take: 2,
+        orderBy: { raisedAmount: "desc" },
+      }),
+    ]);
+
+    userCount = uCount;
+    eventCount = eCount;
+    resolvedCount = rCount;
+    totalRaised = donationSum._sum.amount || 32500;
+    featuredEvents = fEvents;
+    featuredCampaigns = fCampaigns;
+  } catch (err) {
+    console.error("Landing page data fetch fallback:", err);
+  }
+
 
   return (
     <div className="space-y-16 pb-16">

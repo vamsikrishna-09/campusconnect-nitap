@@ -48,44 +48,54 @@ export default async function DashboardPage() {
     );
   }
 
-  // Fetch student's registered events
-  const registeredEvents = await prisma.eventRegistration.findMany({
-    where: { userId: user.id, status: "CONFIRMED" },
-    include: {
-      event: true,
-    },
-    orderBy: { registeredAt: "desc" },
-    take: 3,
-  });
+  let registeredEvents: any[] = [];
+  let userLostFound: any[] = [];
+  let recentPosts: any[] = [];
+  let activeCampaign: any = null;
+  let unreadCount = 0;
 
-  // Fetch student's reported lost/found items
-  const userLostFound = await prisma.lostAndFoundItem.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-  });
+  try {
+    const [rEvents, lItems, rPosts, aCamp, uCount] = await Promise.all([
+      prisma.eventRegistration.findMany({
+        where: { userId: user.id, status: "CONFIRMED" },
+        include: {
+          event: true,
+        },
+        orderBy: { registeredAt: "desc" },
+        take: 3,
+      }),
+      prisma.lostAndFoundItem.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+      prisma.communityPost.findMany({
+        where: { status: "ACTIVE" },
+        include: {
+          author: { select: { name: true, department: true } },
+          _count: { select: { comments: true, reactions: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+      prisma.campaign.findFirst({
+        where: { status: "VERIFIED" },
+        orderBy: { raisedAmount: "desc" },
+      }),
+      prisma.notification.count({
+        where: { userId: user.id, isRead: false },
+      }),
+    ]);
 
-  // Fetch recent campus community posts
-  const recentPosts = await prisma.communityPost.findMany({
-    where: { status: "ACTIVE" },
-    include: {
-      author: { select: { name: true, department: true } },
-      _count: { select: { comments: true, reactions: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-  });
+    registeredEvents = rEvents;
+    userLostFound = lItems;
+    recentPosts = rPosts;
+    activeCampaign = aCamp;
+    unreadCount = uCount;
+  } catch (err) {
+    console.error("Dashboard query error:", err);
+  }
 
-  // Fetch active philanthropy campaign
-  const activeCampaign = await prisma.campaign.findFirst({
-    where: { status: "VERIFIED" },
-    orderBy: { raisedAmount: "desc" },
-  });
-
-  // Unread notifications
-  const unreadCount = await prisma.notification.count({
-    where: { userId: user.id, isRead: false },
-  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

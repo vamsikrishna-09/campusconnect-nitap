@@ -22,8 +22,11 @@
 .env
 
 # Prisma SQLite database
-dev.db
-dev.db-journal
+*.db-journal
+!prisma/dev.db
+
+# Archives
+*.zip
 
 # TypeScript
 *.tsbuildinfo
